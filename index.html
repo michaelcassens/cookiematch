@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Cookie Press!</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap');
+
+  :root {
+    --cream: #FFF8EC;
+    --golden: #F4A435;
+    --brown: #8B4513;
+    --dark-brown: #5C2D0A;
+    --pink: #FF8FAB;
+    --green: #7BC67E;
+    --blue: #74B9FF;
+    --purple: #A29BFE;
+    --red: #FF6B6B;
+    --bg: #FFF0D6;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(circle at 20% 20%, #FFE4B520 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, #F4A43520 0%, transparent 50%),
+      repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(244,164,53,0.04) 20px, rgba(244,164,53,0.04) 40px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .game-container {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 420px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+  }
+
+  /* Header */
+  .header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 32px;
+    color: var(--brown);
+    text-shadow: 3px 3px 0 rgba(139,69,19,0.15);
+    letter-spacing: 1px;
+  }
+
+  .score-box {
+    background: var(--brown);
+    color: var(--cream);
+    border-radius: 16px;
+    padding: 8px 16px;
+    font-size: 22px;
+    font-weight: 800;
+    font-family: 'Fredoka One', cursive;
+    box-shadow: 0 4px 0 var(--dark-brown);
+    min-width: 80px;
+    text-align: center;
+  }
+
+  /* Stats row */
+  .stats-row {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .stat-pill {
+    flex: 1;
+    background: white;
+    border-radius: 12px;
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 8px rgba(139,69,19,0.12);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--dark-brown);
+  }
+
+  .stat-pill .icon { font-size: 18px; }
+
+  /* Timer bar */
+  .timer-container {
+    width: 100%;
+    height: 16px;
+    background: rgba(139,69,19,0.15);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 12px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .timer-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--golden), #FF8C00);
+    border-radius: 8px;
+    transition: width 0.1s linear;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .timer-bar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 100%);
+  }
+
+  .timer-bar.danger {
+    background: linear-gradient(90deg, var(--red), #FF4500);
+    animation: pulse-bar 0.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse-bar {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  /* Baking sheet */
+  .baking-sheet {
+    width: 100%;
+    background: #E8D5B0;
+    border-radius: 20px;
+    padding: 14px;
+    box-shadow: 
+      0 6px 0 #C4A882,
+      0 10px 20px rgba(0,0,0,0.15);
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .baking-sheet::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border: 3px solid #D4C09C;
+    border-radius: 14px;
+    pointer-events: none;
+  }
+
+  /* Target display */
+  .target-area {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    background: rgba(255,255,255,0.6);
+    border-radius: 12px;
+    padding: 8px 12px;
+    z-index: 1;
+  }
+
+  .target-label {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--dark-brown);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+
+  .target-cookies {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .target-cookie {
+    font-size: 26px;
+    transition: all 0.3s;
+    position: relative;
+  }
+
+  .target-cookie.matched {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+
+  .target-cookie.matched::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--green);
+    font-size: 14px;
+    font-weight: 900;
+  }
+
+  /* Cookie grid */
+  .cookie-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    overflow: hidden;
+    align-content: start;
+    padding: 4px;
+  }
+
+  .cookie-slot {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.4);
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 36px;
+    transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.1);
+    position: relative;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    border: 2px solid rgba(255,255,255,0.5);
+  }
+
+  .cookie-slot:active, .cookie-slot.pressed {
+    transform: scale(0.88);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.1);
+    background: rgba(255,255,255,0.7);
+  }
+
+  .cookie-slot.correct {
+    animation: correct-flash 0.4s ease;
+  }
+
+  .cookie-slot.wrong {
+    animation: wrong-shake 0.4s ease;
+  }
+
+  @keyframes correct-flash {
+    0% { background: rgba(123,198,126,0.8); transform: scale(1.1); }
+    50% { background: rgba(123,198,126,0.6); transform: scale(1.05); }
+    100% { background: rgba(255,255,255,0.4); transform: scale(1); }
+  }
+
+  @keyframes wrong-shake {
+    0%, 100% { transform: translateX(0); background: rgba(255,255,255,0.4); }
+    20%, 60% { transform: translateX(-5px); background: rgba(255,107,107,0.5); }
+    40%, 80% { transform: translateX(5px); background: rgba(255,107,107,0.5); }
+  }
+
+  .cookie-slot .combo-glow {
+    position: absolute;
+    inset: -4px;
+    border-radius: 14px;
+    pointer-events: none;
+    animation: combo-ring 0.5s ease forwards;
+  }
+
+  @keyframes combo-ring {
+    0% { box-shadow: 0 0 0 0 rgba(244,164,53,0.8); opacity: 1; }
+    100% { box-shadow: 0 0 0 12px rgba(244,164,53,0); opacity: 0; }
+  }
+
+  /* Combo display */
+  .combo-display {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Fredoka One', cursive;
+    font-size: 56px;
+    color: var(--golden);
+    text-shadow: 3px 3px 0 var(--brown), -1px -1px 0 var(--dark-brown);
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0;
+    animation: none;
+  }
+
+  .combo-display.show {
+    animation: combo-pop 0.7s ease forwards;
+  }
+
+  @keyframes combo-pop {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    30% { opacity: 1; transform: translate(-50%, -70%) scale(1.3); }
+    60% { opacity: 1; transform: translate(-50%, -80%) scale(1.1); }
+    100% { opacity: 0; transform: translate(-50%, -100%) scale(1); }
+  }
+
+  /* Floating score particles */
+  .float-particle {
+    position: fixed;
+    font-family: 'Fredoka One', cursive;
+    font-size: 22px;
+    color: var(--golden);
+    text-shadow: 1px 1px 0 var(--brown);
+    pointer-events: none;
+    z-index: 99;
+    animation: float-up 0.9s ease forwards;
+  }
+
+  @keyframes float-up {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-80px) scale(0.7); }
+  }
+
+  /* Overlay screens */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(92,45,10,0.85);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    backdrop-filter: blur(4px);
+  }
+
+  .overlay.hidden { display: none; }
+
+  .overlay-card {
+    background: var(--cream);
+    border-radius: 28px;
+    padding: 32px 28px;
+    text-align: center;
+    max-width: 320px;
+    width: 90%;
+    box-shadow: 0 12px 0 var(--dark-brown), 0 20px 40px rgba(0,0,0,0.3);
+  }
+
+  .overlay-emoji {
+    font-size: 72px;
+    margin-bottom: 12px;
+    display: block;
+    animation: bounce-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  @keyframes bounce-in {
+    0% { transform: scale(0); }
+    80% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+
+  .overlay-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 38px;
+    color: var(--brown);
+    margin-bottom: 8px;
+  }
+
+  .overlay-sub {
+    font-size: 15px;
+    color: var(--dark-brown);
+    margin-bottom: 20px;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  .overlay-score {
+    font-family: 'Fredoka One', cursive;
+    font-size: 52px;
+    color: var(--golden);
+    text-shadow: 2px 2px 0 var(--brown);
+    margin-bottom: 8px;
+  }
+
+  .overlay-hiscore {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--brown);
+    margin-bottom: 24px;
+    opacity: 0.8;
+  }
+
+  .btn {
+    background: var(--golden);
+    color: var(--dark-brown);
+    border: none;
+    border-radius: 16px;
+    padding: 16px 40px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 #C47F1A;
+    transition: transform 0.1s, box-shadow 0.1s;
+    width: 100%;
+    letter-spacing: 1px;
+  }
+
+  .btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 #C47F1A;
+  }
+
+  /* Level up flash */
+  .level-flash {
+    position: fixed;
+    inset: 0;
+    background: rgba(244,164,53,0.3);
+    pointer-events: none;
+    z-index: 150;
+    opacity: 0;
+  }
+
+  .level-flash.show {
+    animation: level-flash 0.5s ease;
+  }
+
+  @keyframes level-flash {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
+  }
+
+  /* Streak fire */
+  .streak-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--red);
+    color: white;
+    font-size: 10px;
+    font-weight: 900;
+    border-radius: 10px;
+    padding: 2px 5px;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.3);
+    display: none;
+  }
+
+  .streak-badge.show { display: block; }
+
+  /* Sprinkles */
+  .sprinkle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 99;
+    font-size: 18px;
+    animation: sprinkle-fall 1s ease-in forwards;
+  }
+
+  @keyframes sprinkle-fall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(120px) rotate(360deg); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="combo-display" id="comboDisplay"></div>
+<div class="level-flash" id="levelFlash"></div>
+
+<!-- Start Screen -->
+<div class="overlay" id="startScreen">
+  <div class="overlay-card">
+    <span class="overlay-emoji">🍪</span>
+    <div class="overlay-title">Cookie Press!</div>
+    <div class="overlay-sub">
+      Match the cookies shown at the top!<br>
+      Tap fast before time runs out!<br>
+      🔥 Combos = bonus points!
+    </div>
+    <button class="btn" onclick="startGame()">BAKE IT! 🎉</button>
+  </div>
+</div>
+
+<!-- Game Over Screen -->
+<div class="overlay hidden" id="gameOverScreen">
+  <div class="overlay-card">
+    <span class="overlay-emoji" id="gameOverEmoji">😢</span>
+    <div class="overlay-title">Times Up!</div>
+    <div class="overlay-score" id="finalScore">0</div>
+    <div class="overlay-hiscore" id="hiScoreLabel">🏆 High Score: 0</div>
+    <div class="overlay-sub" id="gameOverSub">Keep baking, you'll do better!</div>
+    <button class="btn" onclick="startGame()">AGAIN! 🍪</button>
+  </div>
+</div>
+
+<div class="game-container">
+  <div class="header">
+    <div class="title">🍪 Press!</div>
+    <div class="score-box" id="scoreDisplay">0</div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <span class="icon">⭐</span>
+      <span>Lvl <span id="levelDisplay">1</span></span>
+    </div>
+    <div class="stat-pill">
+      <span class="icon">🔥</span>
+      <span>Streak <span id="streakDisplay">0</span></span>
+    </div>
+    <div class="stat-pill">
+      <span class="icon">✨</span>
+      <span>x<span id="multDisplay">1</span></span>
+    </div>
+  </div>
+
+  <div class="timer-container">
+    <div class="timer-bar" id="timerBar"></div>
+  </div>
+
+  <div class="baking-sheet">
+    <div class="target-area">
+      <div class="target-label">Match→</div>
+      <div class="target-cookies" id="targetCookies"></div>
+    </div>
+    <div class="cookie-grid" id="cookieGrid"></div>
+  </div>
+</div>
+
+<script>
+const COOKIES = ['🍪','🧁','🍩','🎂','🥐','🥧','🍰','🧇'];
+const MESSAGES = {
+  low: ["Keep baking!", "Don't give up!", "More practice!", "Try again!"],
+  mid: ["Nice work!", "Sweet job!", "You're getting it!", "Tasty score!"],
+  high: ["Amazing!", "Cookie master!", "Incredible!", "Legendary baker!"]
+};
+
+let score = 0, highScore = 0, level = 1, streak = 0, combo = 0;
+let timeLeft = 0, maxTime = 30000, timerInterval;
+let currentTarget = [], matchedCount = 0;
+let gameActive = false;
+let lastTapTime = 0;
+
+const GRID_SIZE = 12;
+
+function getCookiesForLevel() {
+  return COOKIES.slice(0, Math.min(4 + Math.floor(level / 2), 8));
+}
+
+function getTargetLength() {
+  return Math.min(1 + Math.floor(level / 2), 4);
+}
+
+function generateTarget() {
+  const pool = getCookiesForLevel();
+  const len = getTargetLength();
+  currentTarget = Array.from({length: len}, () => pool[Math.floor(Math.random() * pool.length)]);
+  matchedCount = 0;
+  renderTarget();
+}
+
+function renderTarget() {
+  const el = document.getElementById('targetCookies');
+  el.innerHTML = currentTarget.map((c, i) => 
+    `<div class="target-cookie ${i < matchedCount ? 'matched' : ''}" id="tc${i}">${c}</div>`
+  ).join('');
+}
+
+function generateGrid() {
+  const pool = getCookiesForLevel();
+  const grid = document.getElementById('cookieGrid');
+  
+  // Ensure at least the next target cookie appears
+  const slots = Array.from({length: GRID_SIZE}, () => pool[Math.floor(Math.random() * pool.length)]);
+  // Guarantee next needed cookie appears in grid
+  const needed = currentTarget[matchedCount];
+  if (!slots.includes(needed)) {
+    slots[Math.floor(Math.random() * GRID_SIZE)] = needed;
+  }
+  
+  grid.innerHTML = slots.map((c, i) => 
+    `<div class="cookie-slot" id="slot${i}" data-cookie="${c}" ontouchstart="pressCookie(${i},this,event)" onclick="pressCookie(${i},this,event)">${c}</div>`
+  ).join('');
+}
+
+function pressCookie(idx, el, e) {
+  if (!gameActive) return;
+  e.preventDefault();
+  
+  const now = Date.now();
+  if (now - lastTapTime < 80) return; // debounce
+  lastTapTime = now;
+
+  const cookie = el.dataset.cookie;
+  const needed = currentTarget[matchedCount];
+
+  if (cookie === needed) {
+    // Correct!
+    matchedCount++;
+    streak++;
+    combo++;
+    
+    el.classList.add('pressed', 'correct');
+    
+    // Add combo glow
+    if (combo >= 2) {
+      const glow = document.createElement('div');
+      glow.className = 'combo-glow';
+      el.appendChild(glow);
+      setTimeout(() => glow.remove(), 500);
+    }
+
+    // Calculate points
+    const mult = getMultiplier();
+    const pts = 10 * mult;
+    score += pts;
+    updateScore();
+    
+    showFloatingScore(`+${pts}`, el);
+    
+    if (combo >= 3) showCombo();
+    
+    updateStats();
+
+    if (matchedCount >= currentTarget.length) {
+      // Completed sequence!
+      score += 5 * mult;
+      updateScore();
+      showFloatingScore(`+BONUS!`, el, true);
+      
+      // Check level up
+      if (score >= level * 100) {
+        level++;
+        flashLevel();
+      }
+      
+      // New target and grid
+      setTimeout(() => {
+        generateTarget();
+        generateGrid();
+      }, 300);
+    } else {
+      // Refresh grid with new needed cookie guaranteed
+      setTimeout(() => {
+        refreshGrid();
+        renderTarget();
+      }, 200);
+    }
+
+  } else {
+    // Wrong!
+    el.classList.add('wrong');
+    streak = 0;
+    combo = 0;
+    updateStats();
+    timeLeft = Math.max(timeLeft - 2000, 0);
+    
+    setTimeout(() => el.classList.remove('wrong'), 400);
+  }
+
+  setTimeout(() => el.classList.remove('pressed', 'correct'), 400);
+}
+
+function refreshGrid() {
+  const pool = getCookiesForLevel();
+  const grid = document.getElementById('cookieGrid');
+  const slots = Array.from({length: GRID_SIZE}, () => pool[Math.floor(Math.random() * pool.length)]);
+  const needed = currentTarget[matchedCount];
+  if (!slots.includes(needed)) {
+    slots[Math.floor(Math.random() * GRID_SIZE)] = needed;
+  }
+  
+  slots.forEach((c, i) => {
+    const el = document.getElementById(`slot${i}`);
+    if (el) {
+      el.dataset.cookie = c;
+      el.textContent = c;
+    }
+  });
+}
+
+function getMultiplier() {
+  if (streak >= 10) return 4;
+  if (streak >= 7) return 3;
+  if (streak >= 4) return 2;
+  return 1;
+}
+
+function showCombo() {
+  const el = document.getElementById('comboDisplay');
+  el.textContent = combo >= 8 ? `🔥${combo}x FIRE!` : combo >= 5 ? `⚡${combo}x EPIC!` : `✨${combo}x COMBO!`;
+  el.className = 'combo-display show';
+  el.addEventListener('animationend', () => el.className = 'combo-display', {once: true});
+}
+
+function showFloatingScore(text, anchor, isBig = false) {
+  const rect = anchor.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'float-particle';
+  el.textContent = text;
+  el.style.left = (rect.left + rect.width/2 - 20) + 'px';
+  el.style.top = (rect.top) + 'px';
+  if (isBig) { el.style.fontSize = '26px'; el.style.color = '#FF8FAB'; }
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 900);
+}
+
+function flashLevel() {
+  const el = document.getElementById('levelFlash');
+  el.className = 'level-flash show';
+  el.addEventListener('animationend', () => el.className = 'level-flash', {once: true});
+  spawnSprinkles();
+}
+
+function spawnSprinkles() {
+  const emojis = ['🍪','⭐','✨','🎉','🌟'];
+  for (let i = 0; i < 8; i++) {
+    const el = document.createElement('div');
+    el.className = 'sprinkle';
+    el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    el.style.left = (10 + Math.random() * 80) + '%';
+    el.style.top = '0px';
+    el.style.animationDelay = (Math.random() * 0.4) + 's';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1500);
+  }
+}
+
+function updateScore() {
+  document.getElementById('scoreDisplay').textContent = score;
+}
+
+function updateStats() {
+  document.getElementById('levelDisplay').textContent = level;
+  document.getElementById('streakDisplay').textContent = streak;
+  document.getElementById('multDisplay').textContent = getMultiplier();
+}
+
+function startGame() {
+  score = 0; level = 1; streak = 0; combo = 0;
+  timeLeft = maxTime;
+  gameActive = true;
+
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('gameOverScreen').classList.add('hidden');
+  
+  updateScore();
+  updateStats();
+  generateTarget();
+  generateGrid();
+  
+  clearInterval(timerInterval);
+  timerInterval = setInterval(tick, 100);
+}
+
+function tick() {
+  timeLeft -= 100;
+  const pct = (timeLeft / maxTime) * 100;
+  const bar = document.getElementById('timerBar');
+  bar.style.width = Math.max(0, pct) + '%';
+  bar.className = 'timer-bar' + (pct < 25 ? ' danger' : '');
+  
+  if (timeLeft <= 0) {
+    endGame();
+  }
+}
+
+function endGame() {
+  clearInterval(timerInterval);
+  gameActive = false;
+  
+  if (score > highScore) highScore = score;
+  
+  const pct = score / (level * 100);
+  let emoji = score === 0 ? '😭' : pct < 0.3 ? '😅' : pct < 0.7 ? '😊' : '🏆';
+  let msgs = score < 50 ? MESSAGES.low : score < 200 ? MESSAGES.mid : MESSAGES.high;
+  let msg = msgs[Math.floor(Math.random() * msgs.length)];
+  
+  document.getElementById('gameOverEmoji').textContent = emoji;
+  document.getElementById('finalScore').textContent = score;
+  document.getElementById('hiScoreLabel').textContent = `🏆 Best: ${highScore}`;
+  document.getElementById('gameOverSub').textContent = msg;
+  document.getElementById('gameOverScreen').classList.remove('hidden');
+}
+</script>
+</body>
+</html>
